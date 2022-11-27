@@ -1,0 +1,44 @@
+services:
+
+  psql:
+    image: 'postgres'
+    container_name: psql
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+
+  rabbitmq:
+    image: rabbitmq:management
+    mem_limit: 512m
+    mem_reservation: 128M
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  producer:
+    image: aladdinych/virt5:producer
+    mem_limit: 512m
+    mem_reservation: 128M
+    build:
+      context: .
+    container_name: producer
+    environment:
+      - RABBIT_HOST=rabbitmq
+      - RABBIT_QUEUE=rabbitQueue
+    depends_on:
+      - rabbitmq
+
+  listener:
+    image: aladdinych/virt5:listener
+    build:
+      context: .
+    container_name: consumer
+    environment:
+      - RABBIT_HOST=rabbitmq
+      - RABBIT_QUEUE=rabbitQueue
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://psql:5432/postgres
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
+    depends_on:
+      - rabbitmq
+      - psql
